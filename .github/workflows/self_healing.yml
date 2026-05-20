@@ -1,0 +1,46 @@
+name: Self-Healing CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      # Optional: In a real scenario, the self-healing backend would be a persistent service
+      # For demo, we assume the backend is reachable at an IP or URL
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Run Tests
+      id: test-step
+      run: |
+        # Simulate a failing test for demo
+        pytest backend/tests || echo "tests_failed=true" >> $GITHUB_ENV
+
+    - name: Notify Self-Healing Backend on Failure
+      if: env.tests_failed == 'true'
+      run: |
+        curl -X POST "http://your-backend-api.com/api/v1/pipeline/failure" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "pipeline_id": "${{ github.run_id }}",
+          "repository": "${{ github.repository }}",
+          "branch": "${{ github.ref_name }}",
+          "error_log": "Tests failed in GitHub Actions pipeline"
+        }'
